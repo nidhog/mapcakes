@@ -1,13 +1,11 @@
-import os
-import json
 import settings
 from multiprocessing import Process
+import os
+import json
 
 
 class FileHandler(object):
-    """FileHandler class
-    Manages splitting input files and joining outputs together.
-    
+    """
     """
     def __init__(self, input_file_path, output_dir):
         """
@@ -21,7 +19,7 @@ class FileHandler(object):
         self.input_file_path = input_file_path
         self.output_dir = output_dir
 
-    def initiate_file_split(self, split_index, index):
+    def begin_file_split(self, split_index, index):
         """initialize a split file by opening and adding an index.
 
         :param split_index: the split index we are currently on, to be used for naming the file.
@@ -58,16 +56,16 @@ class FileHandler(object):
         file_content = original_file.read()
         original_file.close()
         (index, current_split_index) = (1, 1)
-        current_split_unit = self.initiate_file_split(current_split_index, index)
+        current_split_unit = self.begin_file_split(current_split_index, index)
         for character in file_content:
             current_split_unit.write(character)
             if self.is_on_split_position(character, index, unit_size, current_split_index):
                 current_split_unit.close()
                 current_split_index += 1
-                current_split_unit = self.initiate_file_split(current_split_index, index)
+                current_split_unit = self.begin_file_split(current_split_index,index)
             index += 1
         current_split_unit.close()
-        
+
     def join_files(self, number_of_files, clean = False, sort = True, decreasing = True):
         """join all the files in the output directory into a
         single output file.
@@ -96,13 +94,14 @@ class FileHandler(object):
         json.dump(output_join_list, output_join_file)
         output_join_file.close()
         return output_join_list
-    
-class MapReduce(object):
-    """MapReduce class
-    Note: mapper and reducer functions need to be implemented.
-    
-    """
 
+
+class MapReduce(object):
+    """MapReduce class representing the mapreduce model
+
+    note: the 'mapper' and 'reducer' methods must be
+    implemented to use the mapreduce model.
+    """
     def __init__(self, input_dir = settings.default_input_dir, output_dir = settings.default_output_dir,
                  n_mappers = settings.default_n_mappers, n_reducers = settings.default_n_reducers,
                  clean = True):
@@ -124,16 +123,14 @@ class MapReduce(object):
         self.n_mappers = n_mappers
         self.n_reducers = n_reducers
         self.clean = clean
-        self.file_handler = FileHandler(settings.get_input_file(self.input_dir), self.output_dir)
-        self.file_handler.split_file(self.n_mappers)
 
     def mapper(self, key, value):
         """outputs a list of key-value pairs, where the key is
         potentially new and the values are of a potentially different type.
         Note: this function is to be implemented.
 
-        :param key: key of the current mapper
-        :param value: value for the corresponding key
+        :param key:
+        :param value:
         note: this method should be implemented
         """
         pass
@@ -142,67 +139,29 @@ class MapReduce(object):
         """Outputs a single value together with the provided key.
         Note: this function is to be implemented.
 
-        :param key: key of the reducer
-        :param value_list: list of values for the key
+        :param key:
+        :param value_list:
         note: this method should be implemented
         """
         pass
-
-    def check_position(self, key, position):
-        """Checks if we are on the right position
-
-        """
-        return position == (hash(key) % self.n_reducers)
 
     def run_mapper(self, index):
         """Runs the implemented mapper
 
         :param index: the index of the thread to run on
         """
-        input_split_file = open(settings.get_input_split_file(index), "r")
-        key = input_split_file.readline()
-        value = input_split_file.read()
-        input_split_file.close()
-        if(self.clean):
-            os.unlink(settings.get_input_split_file(index))
-        mapper_result = self.mapper(key, value)
-        for reducer_index in range(self.n_reducers):
-            temp_map_file = open(settings.get_temp_map_file(index, reducer_index), "w+")
-            json.dump([(key, value) for (key, value) in mapper_result 
-                                        if self.check_position(key, reducer_index)]
-                        , temp_map_file)
-            temp_map_file.close()
-        
+        pass
+
     def run_reducer(self, index):
         """Runs the implemented reducer
 
         :param index: the index of the thread to run on
         """
-        key_values_map = {}
-        for mapper_index in range(self.n_mappers):
-            temp_map_file = open(settings.get_temp_map_file(mapper_index, index), "r")
-            mapper_results = json.load(temp_map_file)
-            for (key, value) in mapper_results:
-                if not(key in key_values_map):
-                    key_values_map[key] = []
-                try:
-                    key_values_map[key].append(value)
-                except Exception, e:
-                    print "Exception while inserting key: "+ str(e)
-            temp_map_file.close()
-            if self.clean:
-                os.unlink(settings.get_temp_map_file(mapper_index, index))
-        key_value_list = []
-        for key in key_values_map:
-            key_value_list.append(self.reducer(key, key_values_map[key]))
-        output_file = open(settings.get_output_file(index), "w+")
-        json.dump(key_value_list, output_file)
-        output_file.close()
+        pass
 
-    def run(self, join=False):
+    def run(self):
         """Executes the map and reduce operations
 
-        :param join: True if we need to join the outputs, False by default.
         """
         # initialize mappers list
         map_workers = []
@@ -220,19 +179,3 @@ class MapReduce(object):
             p.start()
             map_workers.append(p)
         [t.join() for t in rdc_workers]
-        if join:
-            self.join_outputs()
-        
-    def join_outputs(self, clean = True, sort = True, decreasing = True):
-        """Join all the reduce output files into a single output file.
-        
-        :param clean: if True the reduce outputs will be deleted, by default takes the value of self.clean
-        :param sort: sort the outputs
-        :param decreasing: sort by decreasing order, high value to low value
-        
-        """
-        try:
-            return self.file_handler.join_files(self.n_reducers, clean, sort, decreasing)
-        except Exception, e:
-            print "Exception occured while joining: maybe the join has been performed already  -- "+str(e)
-            return []
