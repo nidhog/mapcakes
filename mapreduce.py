@@ -188,7 +188,7 @@ class MapReduce(object):
                 try:
                     key_values_map[key].append(value)
                 except Exception, e:
-                    print "Exception while inserting key: "+ str(e)
+                    print "Exception while inserting key: "+str(e)
             temp_map_file.close()
             if self.clean:
                 os.unlink(settings.get_temp_map_file(mapper_index, index))
