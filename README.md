@@ -6,7 +6,7 @@ You can find a description implementation steps and an example application on [m
 
 <sup>Author: Ismail Elouafiq</sup>
 
-<sup>Blog: [ismail.land](http://www.ismail.land)</sup>
+<sup>Blog: [ismail.bio](http://www.ismail.bio)</sup>
 
 <sup>Github account: [nidhog](http://github.com/nidhog)</sup>
 
